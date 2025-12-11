@@ -14,88 +14,53 @@
 <meta charset="UTF-8">
 <title>小魚大冒險 圖片版</title>
 <style>
-    body {
-        margin: 0;
-        overflow: hidden;
-        background: #003d66;
-        font-family: Arial, sans-serif;
-    }
-    canvas {
-        display: block;
-    }
+    body { margin: 0; overflow: hidden; background: #003d66; }
+    canvas { display: block; }
     #startScreen {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0, 0, 50, 0.6);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        color: white;
-        font-size: 40px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        color: white; font-size: 40px;
     }
     #startBtn {
-        font-size: 28px;
-        padding: 15px 40px;
-        border: none;
-        border-radius: 10px;
-        background: #ff6666;
-        color: white;
-        cursor: pointer;
-        margin-top: 20px;
+        padding: 12px 35px; background: #ff6666;
+        border-radius: 10px; border: none;
+        color: white; cursor: pointer; font-size: 30px;
     }
-    #scoreDisplay {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        color: white;
-        font-size: 30px;
+    #score {
+        position: absolute; top: 20px; right: 20px;
+        color: white; font-size: 30px;
     }
 </style>
 </head>
 <body>
 
 <canvas id="game"></canvas>
-
 <div id="startScreen">
-    <div>🐟 小魚大冒險（圖片版） 🐟</div>
+    🐟 小魚大冒險（圖片版） 🐟
     <button id="startBtn">開始遊戲</button>
 </div>
-
-<div id="scoreDisplay">分數：0</div>
+<div id="score">分數：0</div>
 
 <script>
+// === Canvas ===
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let keys = {};
-let gameStarted = false;
+let started = false;
 let score = 0;
 
-// ----------------------------------------------------
-// ✦ 載入圖片
-// ----------------------------------------------------
-const fishImg = new Image();
-fishImg.src = "fish.png";
+// === 載入圖片 ===
+const fishImg = new Image(); fishImg.src = "fish.png";
+const piranhaImg = new Image(); piranhaImg.src = "piranha.png";
+const coralImg = new Image(); coralImg.src = "coral.png";
+const bgImg = new Image(); bgImg.src = "bg.png";
 
-const piranhaImg = new Image();
-piranhaImg.src = "piranha.png";
-
-const coralImg = new Image();
-coralImg.src = "coral.png";
-
-const bgImg = new Image();
-bgImg.src = "bg.png";
-
-// ----------------------------------------------------
-// ✦ 玩家小魚
-// ----------------------------------------------------
+// === 玩家小魚 ===
 const fish = {
     x: 200,
     y: canvas.height / 2,
@@ -104,81 +69,51 @@ const fish = {
     speed: 5
 };
 
-// ----------------------------------------------------
-// ✦ 多隻食人魚
-// ----------------------------------------------------
+// === 多隻食人魚 ===
 let piranhas = [];
-let piranhaBaseSpeed = 2;
 let piranhaAccel = 0.002;
 
 function spawnPiranhas() {
     piranhas = [];
-    let count = 20;
-
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < 20; i++) {
         piranhas.push({
             x: Math.random() * (canvas.width * 0.4),
             y: Math.random() * canvas.height,
             width: 60,
             height: 45,
-            speed: piranhaBaseSpeed + Math.random()
+            speed: 2 + Math.random()
         });
     }
 }
 
-// ----------------------------------------------------
-// ✦ 珊瑚礁（使用圖片）
-// ----------------------------------------------------
-let obstacles = [];
+// === 珊瑚礁 ===
+let corals = [];
 
-function spawnObstacle() {
-    let fromTop = Math.random() < 0.5;
+function spawnCoral() {
+    let top = Math.random() < 0.5;
+    let minH = 80, maxH = canvas.height * 0.6;
+    let h = minH + Math.random() * (maxH - minH);
 
-    let minHeight = 80;
-    let maxHeight = canvas.height * 0.6;
-    let height = minHeight + Math.random() * (maxHeight - minHeight);
-
-    obstacles.push({
+    corals.push({
         x: canvas.width,
-        y: fromTop ? 0 : canvas.height - height,
+        y: top ? 0 : canvas.height - h,
         width: 90,
-        height: height,
+        height: h,
         speed: 4
     });
 }
 
-setInterval(() => {
-    if (gameStarted) spawnObstacle();
-}, 1700);
+setInterval(() => { if (started) spawnCoral(); }, 1700);
 
-// ----------------------------------------------------
-// ✦ 主迴圈
-// ----------------------------------------------------
-function gameLoop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+// === controls ===
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => delete keys[e.key]);
 
-    if (bgImg.complete) {
-        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-    }
-
-    if (gameStarted) {
-        moveFish();
-        movePiranhas();
-        moveObstacles();
-        drawFish();
-        drawPiranhas();
-        drawObstacles();
-        updateScore();
-        checkCollision();
-    }
-
-    requestAnimationFrame(gameLoop);
-}
-
-// ----------------------------------------------------
-// ✦ 移動邏輯
-// ----------------------------------------------------
+// === 小魚移動 + 碰撞阻擋（不能穿過珊瑚礁） ===
 function moveFish() {
+    let oldX = fish.x;
+    let oldY = fish.y;
+
     if (keys["ArrowUp"]) fish.y -= fish.speed;
     if (keys["ArrowDown"]) fish.y += fish.speed;
     if (keys["ArrowLeft"]) fish.x -= fish.speed;
@@ -186,99 +121,100 @@ function moveFish() {
 
     fish.x = Math.max(0, Math.min(canvas.width - fish.width, fish.x));
     fish.y = Math.max(0, Math.min(canvas.height - fish.height, fish.y));
+
+    // --- 珊瑚阻擋玩家 ---
+    for (let c of corals) {
+        if (
+            fish.x < c.x + c.width &&
+            fish.x + fish.width > c.x &&
+            fish.y < c.y + c.height &&
+            fish.y + fish.height > c.y
+        ) {
+            // 回到移動前位置
+            fish.x = oldX;
+            fish.y = oldY;
+        }
+    }
 }
 
+// === 食人魚追擊 ===
 function movePiranhas() {
     piranhas.forEach(p => {
         p.speed += piranhaAccel;
-
-        if (p.x < fish.x - 50) p.x += p.speed;
-        if (p.y < fish.y) p.y += 1.1;
-        if (p.y > fish.y) p.y -= 1.1;
+        if (p.x < fish.x - 30) p.x += p.speed;
+        if (p.y < fish.y) p.y += 1.2;
+        if (p.y > fish.y) p.y -= 1.2;
     });
 }
 
-function moveObstacles() {
-    obstacles.forEach(o => o.x -= o.speed);
-    obstacles = obstacles.filter(o => o.x + o.width > 0);
+// === 珊瑚礁移動 ===
+function moveCorals() {
+    corals.forEach(c => c.x -= c.speed);
+    corals = corals.filter(c => c.x + c.width > 0);
 }
 
-// ----------------------------------------------------
-// ✦ 繪圖
-// ----------------------------------------------------
+// === 繪製 ===
 function drawFish() {
     ctx.drawImage(fishImg, fish.x, fish.y, fish.width, fish.height);
 }
 
 function drawPiranhas() {
-    piranhas.forEach(p => {
+    for (let p of piranhas) {
         ctx.drawImage(piranhaImg, p.x, p.y, p.width, p.height);
-    });
+    }
 }
 
-function drawObstacles() {
-    obstacles.forEach(o => {
-        ctx.drawImage(coralImg, o.x, o.y, o.width, o.height);
-    });
+function drawCorals() {
+    for (let c of corals) {
+        ctx.drawImage(coralImg, c.x, c.y, c.width, c.height);
+    }
 }
 
-// ----------------------------------------------------
-// ✦ 得分
-// ----------------------------------------------------
-function updateScore() {
-    score += 0.1;
-    document.getElementById("scoreDisplay").innerText =
-        "分數：" + Math.floor(score);
-}
-
-// ----------------------------------------------------
-// ✦ 碰撞判定（改成圖片大小）
-// ----------------------------------------------------
-function checkCollision() {
-
-    // 食人魚
-    piranhas.forEach(p => {
+// === 食人魚碰撞 → 遊戲結束 ===
+function checkGameOver() {
+    for (let p of piranhas) {
         if (
             fish.x < p.x + p.width &&
             fish.x + fish.width > p.x &&
             fish.y < p.y + p.height &&
             fish.y + fish.height > p.y
         ) {
-            gameOver("被食人魚抓到了！");
+            alert("被食人魚咬到了！\n分數：" + Math.floor(score));
+            location.reload();
         }
-    });
-
-    // 珊瑚
-    obstacles.forEach(o => {
-        if (
-            fish.x < o.x + o.width &&
-            fish.x + fish.width > o.x &&
-            fish.y < o.y + o.height &&
-            fish.y + fish.height > o.y
-        ) {
-            gameOver("撞到珊瑚礁了！");
-        }
-    });
+    }
 }
 
-function gameOver(msg) {
-    alert(msg + "\n最終分數：" + Math.floor(score));
-    location.reload();
+// === 遊戲主迴圈 ===
+function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (bgImg.complete) ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+    if (started) {
+        moveFish();
+        movePiranhas();
+        moveCorals();
+
+        drawFish();
+        drawPiranhas();
+        drawCorals();
+
+        score += 0.1;
+        document.getElementById("score").innerHTML = "分數：" + Math.floor(score);
+
+        checkGameOver();
+    }
+    requestAnimationFrame(loop);
 }
 
-// ----------------------------------------------------
-// ✦ 開始遊戲
-// ----------------------------------------------------
+// === 開始 ===
 document.getElementById("startBtn").onclick = () => {
     document.getElementById("startScreen").style.display = "none";
-    gameStarted = true;
+    started = true;
     spawnPiranhas();
 };
 
-document.addEventListener("keydown", e => keys[e.key] = true);
-document.addEventListener("keyup", e => delete keys[e.key]);
-
-gameLoop();
+loop();
 </script>
 </body>
 </html>
