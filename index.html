@@ -14,14 +14,8 @@
   <meta charset="UTF-8">
   <title>投籃遊戲</title>
   <style>
-    body {
-      text-align: center;
-      background: #f0f0f0;
-    }
-    canvas {
-      background: #ffffff;
-      border: 2px solid black;
-    }
+    body { text-align: center; background: #f0f0f0; }
+    canvas { background: #fff; border: 2px solid black; }
   </style>
 </head>
 <body>
@@ -35,46 +29,28 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 // 球
-let ball = {
-  x: 120,
-  y: 380,
-  r: 10,
-  vx: 0,
-  vy: 0,
-  shooting: false
-};
+let ball = { x: 120, y: 380, r: 10, vx: 0, vy: 0, shooting: false };
 
 // 重力
 const gravity = 0.38;
 
 // 籃筐
-let hoop = {
-  x: 360,
-  y: 230,
-  w: 70,  // 縮小籃筐
-  h: 12,
-  speed: 2,
-  dir: 1,
-  minX: 300,
-  maxX: 550
-};
+let hoop = { x: 360, y: 230, w: 70, h: 12, speed: 2, dir: 1, minX: 300, maxX: 550 };
 
 let score = 0;
 let timeLeft = 60;
-let scoredThisShot = false; // 本次投籃是否已得分
+let scoredThisShot = false;
 
 // 倒數計時
-setInterval(() => {
-  if (timeLeft > 0) timeLeft--;
-}, 1000);
+setInterval(() => { if (timeLeft > 0) timeLeft--; }, 1000);
 
 // 投籃
 document.addEventListener("keydown", e => {
   if (e.code === "Space" && !ball.shooting && timeLeft > 0) {
     ball.shooting = true;
-    ball.vx = 7.5;    // 水平速度
-    ball.vy = -11.5;  // 往上速度
-    scoredThisShot = false; // 重置本次投籃得分狀態
+    ball.vx = 7.5;
+    ball.vy = -11.5;
+    scoredThisShot = false; // 本次投籃重置得分
   }
 });
 
@@ -83,9 +59,7 @@ function update() {
 
   // 籃筐左右移動
   hoop.x += hoop.speed * hoop.dir;
-  if (Math.random() < 0.02) {
-    hoop.speed = Math.random() * 2 + 1;
-  }
+  if (Math.random() < 0.02) hoop.speed = Math.random() * 2 + 1;
   if (hoop.x < hoop.minX) hoop.dir = 1;
   if (hoop.x + hoop.w > hoop.maxX) hoop.dir = -1;
 
@@ -95,7 +69,6 @@ function update() {
     ball.y += ball.vy;
     ball.vy += gravity;
 
-    // 撞到底部重置球
     if (ball.y > canvas.height) {
       ball.shooting = false;
       ball.x = 120;
@@ -103,16 +76,24 @@ function update() {
     }
   }
 
-  // 得分判斷：整顆球完全進籃筐且本次投籃還沒得分
-  if (
-    !scoredThisShot &&
-    ball.x - ball.r > hoop.x &&
-    ball.x + ball.r < hoop.x + hoop.w &&
-    ball.y - ball.r > hoop.y &&
-    ball.y + ball.r < hoop.y + hoop.h
-  ) {
-    score++;
-    scoredThisShot = true; // 標記本次投籃已得分，避免連續加分
+  // 得分判斷：球碰到籃筐任意部分就算分
+  if (!scoredThisShot) {
+    let ballLeft = ball.x - ball.r;
+    let ballRight = ball.x + ball.r;
+    let ballTop = ball.y - ball.r;
+    let ballBottom = ball.y + ball.r;
+
+    let hoopLeft = hoop.x;
+    let hoopRight = hoop.x + hoop.w;
+    let hoopTop = hoop.y;
+    let hoopBottom = hoop.y + hoop.h;
+
+    // 判斷碰撞
+    if (ballRight > hoopLeft && ballLeft < hoopRight &&
+        ballBottom > hoopTop && ballTop < hoopBottom) {
+      score++;
+      scoredThisShot = true;
+    }
   }
 
   // 畫籃筐
