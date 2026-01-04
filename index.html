@@ -19,7 +19,7 @@
       background: #f0f0f0;
     }
     canvas {
-      background: white;
+      background: #ffffff;
       border: 2px solid black;
     }
   </style>
@@ -34,11 +34,11 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// 球（起點調高一點）
+// 球（永遠顯示）
 let ball = {
   x: 120,
   y: 380,
-  r: 9,
+  r: 10,
   vx: 0,
   vy: 0,
   shooting: false
@@ -46,17 +46,16 @@ let ball = {
 
 const gravity = 0.45;
 
-// 籃筐（拉近 + 拉低）
+// 籃筐（保證在畫面內）
 let hoop = {
-  x: 350,
-  y: 220,
-  w: 90,
+  x: 360,
+  y: 230,
+  w: 100,
   h: 12,
-  speed: Math.random() * 2 + 1.5,
+  speed: 2,
   dir: 1
 };
 
-// 分數 & 時間
 let score = 0;
 let timeLeft = 60;
 let scored = false;
@@ -66,14 +65,12 @@ setInterval(() => {
   if (timeLeft > 0) timeLeft--;
 }, 1000);
 
-// 空白鍵投籃（速度重新調整）
+// 投籃
 document.addEventListener("keydown", e => {
   if (e.code === "Space" && !ball.shooting && timeLeft > 0) {
     ball.shooting = true;
-    ball.x = 120;
-    ball.y = 380;
-    ball.vx = 6.2;
-    ball.vy = -9.5;
+    ball.vx = 6;
+    ball.vy = -9;
     scored = false;
   }
 });
@@ -81,18 +78,16 @@ document.addEventListener("keydown", e => {
 function update() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 籃筐不規則移動（範圍縮小）
+  // 籃筐移動（慢一點、看得到）
   hoop.x += hoop.speed * hoop.dir;
-
   if (Math.random() < 0.02) {
     hoop.speed = Math.random() * 2 + 1;
   }
-
   if (hoop.x < 300 || hoop.x + hoop.w > 550) {
     hoop.dir *= -1;
   }
 
-  // 球的物理
+  // 球物理
   if (ball.shooting) {
     ball.x += ball.vx;
     ball.y += ball.vy;
@@ -100,10 +95,48 @@ function update() {
 
     if (ball.y > canvas.height) {
       ball.shooting = false;
+      ball.x = 120;
+      ball.y = 380;
     }
   }
 
-  // 得分判斷（放寬）
+  // 得分判斷（寬鬆）
   if (
-    ball.x + ball.r > hoop.x &&
-    ball.x - ba
+    ball.x > hoop.x &&
+    ball.x < hoop.x + hoop.w &&
+    ball.y > hoop.y - 5 &&
+    ball.y < hoop.y + hoop.h + 5 &&
+    !scored
+  ) {
+    score++;
+    scored = true;
+  }
+
+  // 畫球（永遠畫）
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+  ctx.fillStyle = "orange";
+  ctx.fill();
+
+  // 畫籃筐
+  ctx.fillStyle = "red";
+  ctx.fillRect(hoop.x, hoop.y, hoop.w, hoop.h);
+
+  // 顯示文字
+  document.getElementById("info").innerText =
+    `分數：${score} ｜ 剩餘時間：${timeLeft} 秒`;
+
+  if (timeLeft <= 0) {
+    ctx.fillStyle = "black";
+    ctx.font = "40px Arial";
+    ctx.fillText("Time's Up!", 300, 250);
+  }
+
+  requestAnimationFrame(update);
+}
+
+update();
+</script>
+
+</body>
+</html>
