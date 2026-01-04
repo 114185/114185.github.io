@@ -34,7 +34,7 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// 球（永遠顯示）
+// 球
 let ball = {
   x: 120,
   y: 380,
@@ -44,7 +44,7 @@ let ball = {
   shooting: false
 };
 
-// 重力調整，球飛得更高
+// 重力
 const gravity = 0.38;
 
 // 籃筐
@@ -66,12 +66,12 @@ setInterval(() => {
   if (timeLeft > 0) timeLeft--;
 }, 1000);
 
-// 投籃（空白鍵）
+// 投籃
 document.addEventListener("keydown", e => {
   if (e.code === "Space" && !ball.shooting && timeLeft > 0) {
     ball.shooting = true;
-    ball.vx = 7.5;    // 水平速度
-    ball.vy = -11.5;  // 往上速度，飛更高
+    ball.vx = 7.5;
+    ball.vy = -11.5;
     scored = false;
   }
 });
@@ -79,7 +79,7 @@ document.addEventListener("keydown", e => {
 function update() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 籃筐不規則移動
+  // 籃筐移動
   hoop.x += hoop.speed * hoop.dir;
   if (Math.random() < 0.02) {
     hoop.speed = Math.random() * 2 + 1;
@@ -94,6 +94,27 @@ function update() {
     ball.y += ball.vy;
     ball.vy += gravity;
 
+    // 撞到籃筐左右邊彈開
+    if (
+      ball.y + ball.r > hoop.y &&
+      ball.y - ball.r < hoop.y + hoop.h &&
+      (ball.x - ball.r < hoop.x || ball.x + ball.r > hoop.x + hoop.w)
+    ) {
+      ball.vx *= -0.7; // 水平反彈，稍微衰減
+    }
+
+    // 撞到籃筐底部彈開
+    if (
+      ball.x + ball.r > hoop.x &&
+      ball.x - ball.r < hoop.x + hoop.w &&
+      ball.y - ball.r < hoop.y + hoop.h &&
+      ball.y > hoop.y
+    ) {
+      ball.vy *= -0.6; // 垂直反彈
+      ball.y = hoop.y + hoop.h + ball.r; // 防止卡住
+    }
+
+    // 撞到底部地面
     if (ball.y > canvas.height) {
       ball.shooting = false;
       ball.x = 120;
@@ -101,12 +122,12 @@ function update() {
     }
   }
 
-  // 得分判斷（稍微放寬）
+  // 得分判斷：整顆球在籃筐內才算分
   if (
-    ball.x + ball.r > hoop.x &&
-    ball.x - ball.r < hoop.x + hoop.w &&
-    ball.y > hoop.y - 5 &&
-    ball.y < hoop.y + hoop.h + 5 &&
+    ball.x - ball.r > hoop.x &&
+    ball.x + ball.r < hoop.x + hoop.w &&
+    ball.y - ball.r > hoop.y &&
+    ball.y + ball.r < hoop.y + hoop.h &&
     !scored
   ) {
     score++;
@@ -123,11 +144,11 @@ function update() {
   ctx.fillStyle = "red";
   ctx.fillRect(hoop.x, hoop.y, hoop.w, hoop.h);
 
-  // 顯示分數與時間
+  // 顯示資訊
   document.getElementById("info").innerText =
     `分數：${score} ｜ 剩餘時間：${timeLeft} 秒`;
 
-  // 時間到顯示結束
+  // 遊戲結束提示
   if (timeLeft <= 0) {
     ctx.fillStyle = "black";
     ctx.font = "40px Arial";
