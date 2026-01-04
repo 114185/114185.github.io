@@ -61,7 +61,7 @@ let hoop = {
 
 let score = 0;
 let timeLeft = 60;
-let scored = false;
+let scoredThisShot = false; // 本次投籃是否已得分
 
 // 倒數計時
 setInterval(() => {
@@ -74,14 +74,14 @@ document.addEventListener("keydown", e => {
     ball.shooting = true;
     ball.vx = 7.5;    // 水平速度
     ball.vy = -11.5;  // 往上速度
-    scored = false;
+    scoredThisShot = false; // 重置本次投籃得分狀態
   }
 });
 
 function update() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 籃筐不規則移動（永遠在畫面內）
+  // 籃筐左右移動
   hoop.x += hoop.speed * hoop.dir;
   if (Math.random() < 0.02) {
     hoop.speed = Math.random() * 2 + 1;
@@ -95,7 +95,7 @@ function update() {
     ball.y += ball.vy;
     ball.vy += gravity;
 
-    // 撞到地面重置
+    // 撞到底部重置球
     if (ball.y > canvas.height) {
       ball.shooting = false;
       ball.x = 120;
@@ -103,16 +103,16 @@ function update() {
     }
   }
 
-  // 得分判斷（整顆球在籃筐內）
+  // 得分判斷：整顆球完全進籃筐且本次投籃還沒得分
   if (
+    !scoredThisShot &&
     ball.x - ball.r > hoop.x &&
     ball.x + ball.r < hoop.x + hoop.w &&
     ball.y - ball.r > hoop.y &&
-    ball.y + ball.r < hoop.y + hoop.h &&
-    !scored
+    ball.y + ball.r < hoop.y + hoop.h
   ) {
     score++;
-    scored = true;
+    scoredThisShot = true; // 標記本次投籃已得分，避免連續加分
   }
 
   // 畫籃筐
@@ -125,7 +125,7 @@ function update() {
   ctx.fillStyle = "orange";
   ctx.fill();
 
-  // 顯示分數與時間
+  // 顯示資訊
   document.getElementById("info").innerText =
     `分數：${score} ｜ 剩餘時間：${timeLeft} 秒`;
 
@@ -139,7 +139,6 @@ function update() {
   requestAnimationFrame(update);
 }
 
-// 遊戲開始
 update();
 </script>
 
