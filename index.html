@@ -9,266 +9,128 @@
  </body>
 </html>
 <!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-<meta charset="UTF-8">
-<title>恐龍遊戲</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
+import pygame
+import sys
+import random
 
-<div id="game-container">
+# 初始化
+pygame.init()
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("限時投籃遊戲")
 
-    <button id="mode-btn">模式切換</button>
+clock = pygame.time.Clock()
+font = pygame.font.SysFont(None, 36)
 
-    <div id="mode-menu" class="hidden">
-        <button class="mode-option" data-mode="normal">一般模式</button>
-        <button class="mode-option" data-mode="reverse">倒退嚕</button>
-        <button class="mode-option" data-mode="enemy-jump">敵人會跳</button>
-        <button class="mode-option" data-mode="christmas">聖誕節模式</button>
-    </div>
+# 顏色
+WHITE = (255, 255, 255)
+ORANGE = (255, 165, 0)
+RED = (200, 0, 0)
+BLACK = (0, 0, 0)
 
-    <div id="score">Score: 0</div>
+# 球的設定
+ball_radius = 10
+ball_start_x = 100
+ball_start_y = HEIGHT - 100
+ball_x = ball_start_x
+ball_y = ball_start_y
+ball_vx = 0
+ball_vy = 0
+gravity = 0.5
+shooting = False
 
-    <img id="dino" src="images/dino.png">
+# 籃筐設定
+hoop_width = 80
+hoop_height = 10
+hoop_x = 400
+hoop_y = 200
+hoop_speed = random.uniform(2, 5)
+hoop_direction = 1
+speed_change_timer = 0
 
-    <img id="cactus" src="images/cactus.png">
+# 分數
+score = 0
+scored = False
 
-    <div id="game-over" class="hidden">
-        <p>Game Over</p>
-        <button id="restart-btn">重新開始</button>
-    </div>
+# 計時（60 秒）
+GAME_TIME = 60
+start_ticks = pygame.time.get_ticks()
 
-</div>
+# 主迴圈
+running = True
+while running:
+    clock.tick(60)
 
-<script src="game.js"></script>
-</body>
-</html>
-body {
-    background: #ececec;
-    display: flex;
-    justify-content: center;
-    margin-top: 50px;
-    font-family: Arial;
-}
+    # 剩餘時間
+    seconds_passed = (pygame.time.get_ticks() - start_ticks) / 1000
+    time_left = max(0, GAME_TIME - int(seconds_passed))
 
-#game-container {
-    width: 900px;
-    height: 300px;
-    background: white;
-    border: 2px solid black;
-    position: relative;
-    overflow: hidden;
-}
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
 
-/* ===== Dino ===== */
-#dino {
-    width: 60px;
-    position: absolute;
-    bottom: 0;
-    left: 60px;
-    image-rendering: pixelated;
-    transition: transform 0.2s;
-}
+        # 空白鍵投籃
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE and not shooting and time_left > 0:
+                shooting = True
+                ball_x = ball_start_x
+                ball_y = ball_start_y
+                ball_vx = 8
+                ball_vy = -12
+                scored = False
 
-/* ===== Cactus ===== */
-#cactus {
-    width: 40px;
-    position: absolute;
-    bottom: 0;
-    left: 900px;
-    image-rendering: pixelated;
-}
+    # 球的移動
+    if shooting:
+        ball_x += ball_vx
+        ball_y += ball_vy
+        ball_vy += gravity
 
-/* ===== UI ===== */
-#mode-btn {
-    position: absolute;
-    right: 10px;
-    bottom: 10px;
-}
+        # 球掉出畫面就重置
+        if ball_y > HEIGHT or ball_x > WIDTH:
+            shooting = False
 
-#mode-menu {
-    position: absolute;
-    bottom: 50px;
-    right: 10px;
-    background: #ddd;
-    padding: 10px;
-    border: 1px solid black;
-}
+    # 籃筐不規則移動
+    hoop_x += hoop_speed * hoop_direction
 
-.hidden { display: none; }
+    # 每 1 秒隨機改變速度
+    speed_change_timer += 1
+    if speed_change_timer >= 60:
+        hoop_speed = random.uniform(2, 6)
+        speed_change_timer = 0
 
-#score {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-}
+    # 反彈
+    if hoop_x <= 300 or hoop_x >= WIDTH - hoop_width:
+        hoop_direction *= -1
 
-#game-over {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: rgba(255,255,255,0.8);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-size: 32px;
-}
-let dino = document.getElementById("dino");
-let cactus = document.getElementById("cactus");
-let scoreText = document.getElementById("score");
-let gameOverScreen = document.getElementById("game-over");
-let restartBtn = document.getElementById("restart-btn");
+    # 得分判斷
+    if (hoop_x < ball_x < hoop_x + hoop_width and
+        hoop_y < ball_y < hoop_y + hoop_height and
+        not scored):
+        score += 1
+        scored = True
 
-let modeBtn = document.getElementById("mode-btn");
-let modeMenu = document.getElementById("mode-menu");
-let modes = document.querySelectorAll(".mode-option");
+    # 繪圖
+    screen.fill(WHITE)
 
-let mode = "normal";
+    # 球
+    if shooting:
+        pygame.draw.circle(screen, ORANGE, (int(ball_x), int(ball_y)), ball_radius)
 
-let isJumping = false;
-let cactusJumping = false;
-let score = 0;
-let speed = 7;
-let gameRunning = true;
+    # 籃筐
+    pygame.draw.rect(screen, RED, (int(hoop_x), hoop_y, hoop_width, hoop_height))
 
-/* ===== Dino Jump ===== */
-function jump() {
-    if (isJumping || mode === "enemy-jump") return;
+    # 分數
+    score_text = font.render(f"Score: {score}", True, BLACK)
+    screen.blit(score_text, (20, 20))
 
-    isJumping = true;
-    let upInterval = setInterval(() => {
-        let bottom = parseInt(window.getComputedStyle(dino).bottom);
-        if (bottom >= 130) {
-            clearInterval(upInterval);
-            let downInterval = setInterval(() => {
-                bottom = parseInt(window.getComputedStyle(dino).bottom);
-                if (bottom <= 0) {
-                    clearInterval(downInterval);
-                    isJumping = false;
-                } else {
-                    dino.style.bottom = bottom - 5 + "px";
-                }
-            }, 20);
-        } else {
-            dino.style.bottom = bottom + 5 + "px";
-        }
-    }, 20);
-}
+    # 時間
+    time_text = font.render(f"Time: {time_left}", True, BLACK)
+    screen.blit(time_text, (20, 60))
 
-/* ===== Enemy Jump Mode ===== */
-function cactusJump() {
-    if (cactusJumping || mode !== "enemy-jump") return;
+    # 遊戲結束
+    if time_left <= 0:
+        end_text = font.render("Time's Up!", True, BLACK)
+        screen.blit(end_text, (WIDTH // 2 - 80, HEIGHT // 2))
 
-    cactusJumping = true;
-    let up = setInterval(() => {
-        let bottom = parseInt(window.getComputedStyle(cactus).bottom);
-        if (bottom >= 120) {
-            clearInterval(up);
-            let down = setInterval(() => {
-                bottom = parseInt(window.getComputedStyle(cactus).bottom);
-                if (bottom <= 0) {
-                    clearInterval(down);
-                    cactusJumping = false;
-                } else {
-                    cactus.style.bottom = bottom - 5 + "px";
-                }
-            }, 20);
-        } else {
-            cactus.style.bottom = bottom + 5 + "px";
-        }
-    }, 20);
-}
-
-/* ===== Keyboard ===== */
-document.addEventListener("keydown", (e) => {
-    if (!gameRunning) return;
-    if (e.code === "Space") {
-        if (mode === "enemy-jump") cactusJump();
-        else jump();
-    }
-});
-
-/* ===== Main Loop ===== */
-function gameLoop() {
-    if (!gameRunning) return;
-
-    let cactusLeft = parseInt(window.getComputedStyle(cactus).left);
-    let dinoBottom = parseInt(window.getComputedStyle(dino).bottom);
-
-    cactus.style.left = cactusLeft - speed + "px";
-
-    if (cactusLeft < -50) {
-        cactus.style.left = "900px";
-        cactus.style.bottom = "0px";
-        score++;
-        scoreText.textContent = "Score: " + score;
-        speed += 0.3;
-    }
-
-    // Collision
-    if (cactusLeft < 110 && cactusLeft > 60 && dinoBottom < 40) {
-        endGame();
-    }
-
-    requestAnimationFrame(gameLoop);
-}
-
-/* ===== Game Over ===== */
-function endGame() {
-    gameRunning = false;
-    gameOverScreen.classList.remove("hidden");
-}
-
-/* ===== Restart ===== */
-restartBtn.addEventListener("click", () => {
-    gameRunning = true;
-    gameOverScreen.classList.add("hidden");
-    score = 0;
-    speed = 7;
-    cactus.style.left = "900px";
-    cactus.style.bottom = "0px";
-    dino.style.bottom = "0px";
-    gameLoop();
-});
-
-/* ===== Mode Switch ===== */
-modeBtn.addEventListener("click", () => {
-    modeMenu.classList.toggle("hidden");
-});
-
-modes.forEach(btn => {
-    btn.addEventListener("click", () => {
-        mode = btn.dataset.mode;
-
-        // Reverse
-        if (mode === "reverse") {
-            dino.style.transform = "scaleX(-1)";
-        } else {
-            dino.style.transform = "scaleX(1)";
-        }
-
-        // Christmas Mode
-        if (mode === "christmas") {
-            dino.src = "images/dino_christmas.png";
-            cactus.src = "images/tree.png";
-        } else {
-            dino.src = "images/dino.png";
-            cactus.src = "images/cactus.png";
-        }
-
-        modeMenu.classList.add("hidden");
-    });
-});
-
-gameLoop();
-project/
- ├ index.html
- ├ style.css
- ├ game.js
- └ images/
-      ├ dino.png              （恐龍）
-      ├ cactus.png            （仙人掌）
-      ├ dino_christmas.png    （戴聖誕帽的恐龍）
-      ├ tree.png              （聖誕樹）
+    pygame.display.flip()
