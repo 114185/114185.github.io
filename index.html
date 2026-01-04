@@ -34,7 +34,7 @@ let ball = { x: 120, y: 380, r: 10, vx: 0, vy: 0, shooting: false };
 // 重力
 const gravity = 0.38;
 
-// 籃筐（寬度縮小到 50）
+// 籃筐（寬度 50）
 let hoop = { x: 360, y: 230, w: 50, h: 12, speed: 2, dir: 1, minX: 300, maxX: 550 };
 
 let score = 0;
@@ -50,7 +50,7 @@ document.addEventListener("keydown", e => {
     ball.shooting = true;
     ball.vx = 7.5;
     ball.vy = -11.5;
-    scoredThisShot = false;
+    scoredThisShot = false; // 重置本次投籃得分
   }
 });
 
@@ -76,23 +76,14 @@ function update() {
     }
   }
 
-  // 得分判斷：球碰到籃筐任意部分就算分
-  if (!scoredThisShot) {
-    let ballLeft = ball.x - ball.r;
-    let ballRight = ball.x + ball.r;
-    let ballTop = ball.y - ball.r;
-    let ballBottom = ball.y + ball.r;
-
-    let hoopLeft = hoop.x;
-    let hoopRight = hoop.x + hoop.w;
-    let hoopTop = hoop.y;
-    let hoopBottom = hoop.y + hoop.h;
-
-    if (ballRight > hoopLeft && ballLeft < hoopRight &&
-        ballBottom > hoopTop && ballTop < hoopBottom) {
-      score++;
-      scoredThisShot = true;
-    }
+  // 得分判斷：整顆球完全進籃筐
+  if (!scoredThisShot &&
+      ball.x - ball.r > hoop.x &&
+      ball.x + ball.r < hoop.x + hoop.w &&
+      ball.y - ball.r > hoop.y &&
+      ball.y + ball.r < hoop.y + hoop.h) {
+    score++;
+    scoredThisShot = true;
   }
 
   // 畫籃筐
@@ -105,7 +96,7 @@ function update() {
   ctx.fillStyle = "orange";
   ctx.fill();
 
-  // 顯示分數與時間
+  // 顯示資訊
   document.getElementById("info").innerText =
     `分數：${score} ｜ 剩餘時間：${timeLeft} 秒`;
 
