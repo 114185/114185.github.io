@@ -34,7 +34,7 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// 球（永遠顯示）
+// 球
 let ball = {
   x: 120,
   y: 380,
@@ -44,9 +44,10 @@ let ball = {
   shooting: false
 };
 
-const gravity = 0.45;
+// ⬇️ 重力調小一點（飛更遠）
+const gravity = 0.4;
 
-// 籃筐（保證在畫面內）
+// 籃筐
 let hoop = {
   x: 360,
   y: 230,
@@ -65,12 +66,12 @@ setInterval(() => {
   if (timeLeft > 0) timeLeft--;
 }, 1000);
 
-// 投籃
+// 投籃（⬅️ 水平速度變大）
 document.addEventListener("keydown", e => {
   if (e.code === "Space" && !ball.shooting && timeLeft > 0) {
     ball.shooting = true;
-    ball.vx = 6;
-    ball.vy = -9;
+    ball.vx = 7.5;   // 原本 6
+    ball.vy = -9.5;  // 稍微調整
     scored = false;
   }
 });
@@ -78,7 +79,7 @@ document.addEventListener("keydown", e => {
 function update() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 籃筐移動（慢一點、看得到）
+  // 籃筐移動
   hoop.x += hoop.speed * hoop.dir;
   if (Math.random() < 0.02) {
     hoop.speed = Math.random() * 2 + 1;
@@ -87,7 +88,7 @@ function update() {
     hoop.dir *= -1;
   }
 
-  // 球物理
+  // 球的物理
   if (ball.shooting) {
     ball.x += ball.vx;
     ball.y += ball.vy;
@@ -100,7 +101,7 @@ function update() {
     }
   }
 
-  // 得分判斷（寬鬆）
+  // 得分判斷
   if (
     ball.x > hoop.x &&
     ball.x < hoop.x + hoop.w &&
@@ -112,7 +113,7 @@ function update() {
     scored = true;
   }
 
-  // 畫球（永遠畫）
+  // 畫球
   ctx.beginPath();
   ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
   ctx.fillStyle = "orange";
@@ -122,7 +123,7 @@ function update() {
   ctx.fillStyle = "red";
   ctx.fillRect(hoop.x, hoop.y, hoop.w, hoop.h);
 
-  // 顯示文字
+  // 文字
   document.getElementById("info").innerText =
     `分數：${score} ｜ 剩餘時間：${timeLeft} 秒`;
 
