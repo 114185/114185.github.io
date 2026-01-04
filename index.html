@@ -9,106 +9,137 @@
  </body>
 </html>
 <!DOCTYPE html>
-pip install pygame
-import pygame
-import sys
-import random
-pygame.init()
-WIDTH, HEIGHT = 800, 600
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>投籃遊戲</title>
+  <style>
+    body {
+      text-align: center;
+      background: #f0f0f0;
+    }
+    canvas {
+      background: white;
+      border: 2px solid black;
+    }
+  </style>
+</head>
+<body>
 
-clock = pygame.time.Clock()
-font = pygame.font.SysFont(None, 36)
-WHITE = (255, 255, 255)
-ORANGE = (255, 165, 0)
-RED = (200, 0, 0)
-BLACK = (0, 0, 0)
+<h2>🏀 投籃遊戲（空白鍵投籃）</h2>
+<canvas id="game" width="800" height="500"></canvas>
+<p id="info"></p>
 
-ball_radius = 10
-ball_start_x = 100
-ball_start_y = HEIGHT - 100
-ball_x = ball_start_x
-ball_y = ball_start_y
-ball_vx = 0
-ball_vy = 0
-gravity = 0.5
-shooting = False
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-hoop_width = 80
-hoop_height = 10
-hoop_x = 400
-hoop_y = 200
-hoop_speed = random.uniform(2, 5)
-hoop_direction = 1
-speed_change_timer = 0
+// 球
+let ball = {
+  x: 100,
+  y: 400,
+  r: 8,
+  vx: 0,
+  vy: 0,
+  shooting: false
+};
 
-score = 0
-scored = False
+const gravity = 0.4;
 
-GAME_TIME = 60
-start_ticks = pygame.time.get_ticks()
+// 籃筐
+let hoop = {
+  x: 500,
+  y: 150,
+  w: 80,
+  h: 10,
+  speed: Math.random() * 3 + 2,
+  dir: 1
+};
 
-running = True
-while running:
-    clock.tick(60)
+// 分數 & 時間
+let score = 0;
+let timeLeft = 60;
+let scored = false;
 
-    seconds_passed = (pygame.time.get_ticks() - start_ticks) / 1000
-    time_left = max(0, GAME_TIME - int(seconds_passed))
+// 倒數計時
+setInterval(() => {
+  if (timeLeft > 0) timeLeft--;
+}, 1000);
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
+// 空白鍵投籃
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" && !ball.shooting && timeLeft > 0) {
+    ball.shooting = true;
+    ball.x = 100;
+    ball.y = 400;
+    ball.vx = 7;
+    ball.vy = -11;
+    scored = false;
+  }
+});
 
-  
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE and not shooting and time_left > 0:
-                shooting = True
-                ball_x = ball_start_x
-                ball_y = ball_start_y
-                ball_vx = 8
-                ball_vy = -12
-                scored = False
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // 籃筐不規則移動
+  hoop.x += hoop.speed * hoop.dir;
+  if (Math.random() < 0.02) {
+    hoop.speed = Math.random() * 4 + 1;
+  }
+  if (hoop.x < 300 || hoop.x + hoop.w > canvas.width) {
+    hoop.dir *= -1;
+  }
 
-    if shooting:
-        ball_x += ball_vx
-        ball_y += ball_vy
-        ball_vy += gravity
+  // 球的物理
+  if (ball.shooting) {
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+    ball.vy += gravity;
 
-  
-        if ball_y > HEIGHT or ball_x > WIDTH:
-            shooting = False
+    if (ball.y > canvas.height) {
+      ball.shooting = false;
+    }
+  }
 
-    hoop_x += hoop_speed * hoop_direction
+  // 得分判斷
+  if (
+    ball.x > hoop.x &&
+    ball.x < hoop.x + hoop.w &&
+    ball.y > hoop.y &&
+    ball.y < hoop.y + hoop.h &&
+    !scored
+  ) {
+    score++;
+    scored = true;
+  }
 
-    speed_change_timer += 1
-    if speed_change_timer >= 60:
-        hoop_speed = random.uniform(2, 6)
-        speed_change_timer = 0
-    if hoop_x <= 300 or hoop_x >= WIDTH - hoop_width:
-        hoop_direction *= -1
+  // 畫球
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+  ctx.fillStyle = "orange";
+  ctx.fill();
 
-    if (hoop_x < ball_x < hoop_x + hoop_width and
-        hoop_y < ball_y < hoop_y + hoop_height and
-        not scored):
-        score += 1
-        scored = True
+  // 畫籃筐
+  ctx.fillStyle = "red";
+  ctx.fillRect(hoop.x, hoop.y, hoop.w, hoop.h);
 
-    screen.fill(WHITE)
+  // 顯示資訊
+  document.getElementById("info").innerText =
+    `分數：${score} ｜ 剩餘時間：${timeLeft} 秒`;
 
-    if shooting:
-        pygame.draw.circle(screen, ORANGE, (int(ball_x), int(ball_y)), ball_radius)
-    pygame.draw.rect(screen, RED, (int(hoop_x), hoop_y, hoop_width, hoop_height))
-    score_text = font.render(f"Score: {score}", True, BLACK)
-    screen.blit(score_text, (20, 20))
+  // 結束
+  if (timeLeft <= 0) {
+    ctx.fillStyle = "black";
+    ctx.font = "40px Arial";
+    ctx.fillText("Time's Up!", 300, 250);
+    return;
+  }
 
-    time_text = font.render(f"Time: {time_left}", True, BLACK)
-    screen.blit(time_text, (20, 60))
+  requestAnimationFrame(update);
+}
 
-    if time_left <= 0:
-        end_text = font.render("Time's Up!", True, BLACK)
-        screen.blit(end_text, (WIDTH // 2 - 80, HEIGHT // 2))
+update();
+</script>
 
-    pygame.display.flip()
+</body>
+</html>
