@@ -76,14 +76,24 @@ function update() {
     }
   }
 
-  // 得分判斷：整顆球完全進籃筐
-  if (!scoredThisShot &&
-      ball.x - ball.r > hoop.x &&
-      ball.x + ball.r < hoop.x + hoop.w &&
-      ball.y - ball.r > hoop.y &&
-      ball.y + ball.r < hoop.y + hoop.h) {
-    score++;
-    scoredThisShot = true;
+  // 得分判斷：球圓形與籃筐矩形有重疊就得分
+  if (!scoredThisShot) {
+    let ballLeft = ball.x - ball.r;
+    let ballRight = ball.x + ball.r;
+    let ballTop = ball.y - ball.r;
+    let ballBottom = ball.y + ball.r;
+
+    let hoopLeft = hoop.x;
+    let hoopRight = hoop.x + hoop.w;
+    let hoopTop = hoop.y;
+    let hoopBottom = hoop.y + hoop.h;
+
+    // 圓形碰撞矩形判斷
+    if (ballRight > hoopLeft && ballLeft < hoopRight &&
+        ballBottom > hoopTop && ballTop < hoopBottom) {
+      score++;
+      scoredThisShot = true; // 每次投籃只加一次分
+    }
   }
 
   // 畫籃筐
@@ -100,6 +110,7 @@ function update() {
   document.getElementById("info").innerText =
     `分數：${score} ｜ 剩餘時間：${timeLeft} 秒`;
 
+  // 遊戲結束提示
   if (timeLeft <= 0) {
     ctx.fillStyle = "black";
     ctx.font = "40px Arial";
