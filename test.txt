@@ -1,1 +1,126 @@
+import pygame
+import sys
+import random
+
+# 初始化
+pygame.init()
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("限時投籃遊戲")
+
+clock = pygame.time.Clock()
+font = pygame.font.SysFont(None, 36)
+
+# 顏色
+WHITE = (255, 255, 255)
+ORANGE = (255, 165, 0)
+RED = (200, 0, 0)
+BLACK = (0, 0, 0)
+
+# 球的設定
+ball_radius = 10
+ball_start_x = 100
+ball_start_y = HEIGHT - 100
+ball_x = ball_start_x
+ball_y = ball_start_y
+ball_vx = 0
+ball_vy = 0
+gravity = 0.5
+shooting = False
+
+# 籃筐設定
+hoop_width = 80
+hoop_height = 10
+hoop_x = 400
+hoop_y = 200
+hoop_speed = random.uniform(2, 5)
+hoop_direction = 1
+speed_change_timer = 0
+
+# 分數
+score = 0
+scored = False
+
+# 計時（60 秒）
+GAME_TIME = 60
+start_ticks = pygame.time.get_ticks()
+
+# 主迴圈
+running = True
+while running:
+    clock.tick(60)
+
+    # 剩餘時間
+    seconds_passed = (pygame.time.get_ticks() - start_ticks) / 1000
+    time_left = max(0, GAME_TIME - int(seconds_passed))
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+        # 空白鍵投籃
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE and not shooting and time_left > 0:
+                shooting = True
+                ball_x = ball_start_x
+                ball_y = ball_start_y
+                ball_vx = 8
+                ball_vy = -12
+                scored = False
+
+    # 球的移動
+    if shooting:
+        ball_x += ball_vx
+        ball_y += ball_vy
+        ball_vy += gravity
+
+        # 球掉出畫面就重置
+        if ball_y > HEIGHT or ball_x > WIDTH:
+            shooting = False
+
+    # 籃筐不規則移動
+    hoop_x += hoop_speed * hoop_direction
+
+    # 每 1 秒隨機改變速度
+    speed_change_timer += 1
+    if speed_change_timer >= 60:
+        hoop_speed = random.uniform(2, 6)
+        speed_change_timer = 0
+
+    # 反彈
+    if hoop_x <= 300 or hoop_x >= WIDTH - hoop_width:
+        hoop_direction *= -1
+
+    # 得分判斷
+    if (hoop_x < ball_x < hoop_x + hoop_width and
+        hoop_y < ball_y < hoop_y + hoop_height and
+        not scored):
+        score += 1
+        scored = True
+
+    # 繪圖
+    screen.fill(WHITE)
+
+    # 球
+    if shooting:
+        pygame.draw.circle(screen, ORANGE, (int(ball_x), int(ball_y)), ball_radius)
+
+    # 籃筐
+    pygame.draw.rect(screen, RED, (int(hoop_x), hoop_y, hoop_width, hoop_height))
+
+    # 分數
+    score_text = font.render(f"Score: {score}", True, BLACK)
+    screen.blit(score_text, (20, 20))
+
+    # 時間
+    time_text = font.render(f"Time: {time_left}", True, BLACK)
+    screen.blit(time_text, (20, 60))
+
+    # 遊戲結束
+    if time_left <= 0:
+        end_text = font.render("Time's Up!", True, BLACK)
+        screen.blit(end_text, (WIDTH // 2 - 80, HEIGHT // 2))
+
+    pygame.display.flip()
 
